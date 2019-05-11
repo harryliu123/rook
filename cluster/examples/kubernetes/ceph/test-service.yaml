@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata: 
+  name: nginx-read-write-many
+  namespace: read-write-many-tutorial
+spec:
+  selector:
+    app: read-write-many
+  ports:
+  - protocol: TCP
+    port: 80
