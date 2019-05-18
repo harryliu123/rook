@@ -1,14 +1,14 @@
 apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
-  name: nginx-deployment
+  name: nginx-deployment-two
   namespace: read-write-many-tutorial
 spec:
   replicas: 2
   template:
     metadata:
       labels:
-        app: read-write-many
+        app: read-write-many-two
     spec:
       volumes:
       - name: nginx-data
@@ -16,7 +16,7 @@ spec:
           driver: ceph.rook.io/rook
           fsType: ceph
           options:
-            fsName: firstcephfs
+            fsName: seccondcephfs
             clusterNamespace: rook-ceph
       containers:
       - image: nginx:latest
