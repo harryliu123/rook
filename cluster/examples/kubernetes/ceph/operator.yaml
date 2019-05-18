@@ -29,6 +29,15 @@ spec:
       labels:
         app: rook-ceph-operator
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: preemptive
+                operator: In
+                values: 
+                - "false"
       serviceAccountName: rook-ceph-system
       containers:
       - name: rook-ceph-operator
@@ -62,8 +71,8 @@ spec:
         # - name: AGENT_MOUNT_SECURITY_MODE
         #   value: "Any"
         # Set the path where the Rook agent can find the flex volumes
-        # - name: FLEXVOLUME_DIR_PATH
-        #  value: "<PathToFlexVolumes>"
+        - name: FLEXVOLUME_DIR_PATH
+          value: "/home/kubernetes/flexvolume"
         # Set the path where kernel modules can be found
         # - name: LIB_MODULES_DIR_PATH
         #  value: "<PathToLibModules>"
@@ -82,7 +91,7 @@ spec:
         # http://docs.ceph.com/docs/master/cephfs/experimental-features/#multiple-filesystems-within-a-ceph-cluster
         # which might cause mons to crash as seen in https://github.com/rook/rook/issues/1027
         - name: ROOK_ALLOW_MULTIPLE_FILESYSTEMS
-          value: "false"
+          value: "true"
         # The logging level for the operator: INFO | DEBUG
         - name: ROOK_LOG_LEVEL
           value: "INFO"
