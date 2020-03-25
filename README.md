@@ -87,3 +87,62 @@ Builds from the master branch can have functionality changed and even removed at
 Rook is under the Apache 2.0 license.
 
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Frook%2Frook.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Frook%2Frook?ref=badge_large)
+
+
+
+####################################################
+
+git clone https://github.com/harryliu123/rook.git
+cd rook
+git checkout v1.0.0-ceph-GKE
+cd cluster/examples/kubernetes/ceph/
+ 
+#  確認 ROOK_ALLOW_MULTIPLE_FILESYSTEMS 為 true
+grep -B2 "ROOK_ALLOW_MULTIPLE_FILESYSTEMS" operator.yaml
+       - name: ROOK_ALLOW_MULTIPLE_FILESYSTEMS
+         value: "true"
+ 
+kubectl create -f common.yaml
+kubectl create -f operator-with-csi.yaml
+# oc create -f operator-openshift.yaml
+kubectl create -f cluster.yaml
+kubectl create -f toolbox.yaml
+
+
+設定Ceph UI
+發布 rook-ceph-mgr-dashboard for GKE LoadBalancer 並取得連線的URL
+kubectl patch svc rook-ceph-mgr-dashboard -n rook-ceph -p '{"spec": {"ports": [{"port": 8443,"targetPort": 8443,"name": "https-dashboard"}],"type": "LoadBalancer"}}'
+ 
+export ceph_ui_IP=$(kubectl -n rook-ceph get service rook-ceph-mgr-dashboard -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+echo https://$ceph_ui_IP:8443
+
+取的UI的密碼
+# 帳號為admin
+kubectl -n rook-ceph get secret rook-ceph-dashboard-password -o jsonpath="{['data']['password']}" | base64 --decode && echo
+'fix' the dashboard
+因為UI 有一些bug
+
+# 進入到tools這台pod
+kubectl -n rook-ceph exec -it $(kubectl -n rook-ceph get pod -l "app=rook-ceph-tools" -o jsonpath='{.items[0].metadata.name}') bash
+ 
+# 進入到tools這台pod 內執行下面指令 進行fix
+    ceph dashboard ac-role-create admin-no-iscsi
+ 
+    for scope in dashboard-settings log rgw prometheus grafana nfs-ganesha manager hosts rbd-image config-opt rbd-mirroring cephfs user osd pool monitor; do
+    ceph dashboard ac-role-add-scope-perms admin-no-iscsi ${scope} create delete read update;
+    done
+ 
+    ceph dashboard ac-user-set-roles admin admin-no-iscsi
+
+
+建立 k8s 使用ceph  
+建立 k8s StorageClass 並設定為預設 (RBD) (建議)
+kubectl apply -f storageclass.yaml
+kubectl patch storageclass standard -p '{"metadata": {"annotations":{"storageclass.beta.kubernetes.io/is-default-class":"false"}}}'
+kubectl patch storageclass rook-ceph-block -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+驗證storageclass
+kubectl get storageclass
+ 
+    NAME                        PROVISIONER            AGE
+    rook-ceph-block (default)   ceph.rook.io/block     3m12s
+    standard                    kubernetes.io/gce-pd   35m
